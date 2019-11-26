@@ -11,9 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>				/* For random() seed */
-
-#include <fcntl.h>				/* Defines O_* constants */
+#include <time.h>
+#include <fcntl.h>
 #include <mqueue.h>
 #include <pthread.h>
 
@@ -24,7 +23,7 @@
 #define CLIENT_ARG				"client"
 #define SERVER_ARG				"server"
 #define EXIT_STRING				"exit"
-#define TEST_CLIENTS_NUMBER		42
+#define TEST_CLIENTS_NUMBER		16
 
 /* Structure used to store each thread id */
 typedef struct {

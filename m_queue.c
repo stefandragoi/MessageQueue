@@ -7,6 +7,7 @@
 
 #include "m_queue.h"
 
+/* Helper function used in creating queue name */
 int count_digits(int x) {
 	int count = 0;
 
@@ -46,7 +47,7 @@ void* client_job(void *arg) {
 		printf("Malloc error, string_id\n");
 		return NULL;
 	}
-	sprintf(string_id, "%d", id);
+	snprintf(string_id, id_length + 1, "%d", id);
 	string_id[id_length] = '\0';
 	queue_name = malloc((strlen(CLIENT_QUEUE) + strlen(string_id) + 1) * sizeof(queue_name));
 	if (NULL == queue_name) {
@@ -54,6 +55,7 @@ void* client_job(void *arg) {
 		return NULL;
 	}
 	strncpy(queue_name, CLIENT_QUEUE, strlen(CLIENT_QUEUE));
+	queue_name[strlen(CLIENT_QUEUE)] = '\0';
 	strncat(queue_name, string_id, strlen(string_id));
 
 	printf("Client %d started\n", id);
@@ -61,27 +63,36 @@ void* client_job(void *arg) {
 	message_queue_client = mq_open(queue_name, O_CREAT | O_RDWR, 0600, NULL);
 	if (message_queue_client < 0) {
 		printf("Unable to open queue for client %d\n", id);
+		free(string_id);
+		free(queue_name);
 		return NULL;
 	}
 
 	message_queue_server = mq_open(SERVER_QUEUE, O_CREAT | O_RDWR, 0600, NULL);
 	if (message_queue_server < 0) {
 		printf("Client %d unable to open server queue\n", id);
+		free(string_id);
+		free(queue_name);
 		return NULL;
 	}
 
 	rc = mq_send(message_queue_server, queue_name, strlen(queue_name), 0);
 	if (rc < 0) {
 		printf("Client %d unable to send\n", id);
+		free(string_id);
+		free(queue_name);
 		return NULL;
 	}
 
 	rc = mq_receive(message_queue_client, message_buffer, BUF_SIZE, 0);
 	if (rc < 0) {
 		printf("Receiving error on client %d\n", id);
+		free(string_id);
+		free(queue_name);
 		return NULL;
 	}
 
+	token = 0;
 	memcpy(&token, message_buffer, sizeof(int));
 
 	printf("Client %d got the following token %d\n", id, token);
@@ -99,6 +110,9 @@ void* client_job(void *arg) {
 	if (rc < 0) {
 		printf("Error unlinking client %d queue\n", id);
 	}
+
+	free(string_id);
+	free(queue_name);
 
 	return NULL;
 }
@@ -125,6 +139,7 @@ void server_job() {
 	printf("Server started\n");
 
 	while(1) {
+		memset(message_buffer, 0, BUF_SIZE);
 		rc = mq_receive(message_queue_server, message_buffer, BUF_SIZE, 0);
 		if (rc < 0) {
 			printf("Receiving error on server\n");
